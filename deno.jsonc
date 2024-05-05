@@ -1,0 +1,15 @@
+{
+  "name": "@lambdalisue/ogh",
+  "version": "0.0.0",
+  "exports": "./mod.ts",
+  "tasks": {
+    "test": "deno test -A --parallel --doc",
+    "check": "deno check **/*.ts"
+  },
+  "imports": {
+    "@core/unknownutil": "jsr:@core/unknownutil@^3.18.0",
+    "@std/flags": "jsr:@std/flags@^0.224.0",
+    "@std/fs": "jsr:@std/fs@^0.224.0",
+    "@std/path": "jsr:@std/path@^0.224.0"
+  }
+}

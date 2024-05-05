@@ -1,0 +1,16 @@
+Organize GitHub repositories. Similar to `ghq` but use `gh` command internally and options are limited.
+
+
+USAGE
+  ogh root [--json]
+  ogh list [--json]
+  ogh clone [<owner>/]<repo>
+
+OPTIONS
+  -h, --help    Display this help message.
+      --json    Output the result in JSON format if possible.
+
+CONFIGURATION
+
+  ogh.root      In default, "ogh clone" command clones repositories into "~/ogh" directory.
+                You can change the root directory by running "git config --add ogh.root <path>" command.
