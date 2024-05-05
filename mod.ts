@@ -1,5 +1,6 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read --allow-env
 import { parse } from "@std/flags";
+import { fromFileUrl } from "@std/path";
 import { ensure, is } from "@core/unknownutil";
 import * as ogh from "./ogh.ts";
 
@@ -26,10 +27,11 @@ async function main(args: string[]): Promise<void> {
   });
   switch (command) {
     case "root": {
+      const root = fromFileUrl(config.root);
       if (opts.json) {
-        console.log(JSON.stringify(config.root.href));
+        console.log(JSON.stringify(root));
       } else {
-        console.log(config.root.href);
+        console.log(root);
       }
       break;
     }
