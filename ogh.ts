@@ -54,9 +54,14 @@ export async function list(config: Config): Promise<string[]> {
  * Get configuration from git config
  */
 export async function getConfig(): Promise<Config> {
-  const output = await execute("git", ["config", "--get", "ogh.root"]);
+  let output: string;
+  try {
+    output = await execute("git", ["config", "--get", "ogh.root"]);
+  } catch {
+    output = DEFAULT_ROOT;
+  }
   const root = toFileUrl(
-    ensureTrailingSlash(expandHome(output.trim() || DEFAULT_ROOT)),
+    ensureTrailingSlash(expandHome(output.trim())),
   );
   return { root };
 }
