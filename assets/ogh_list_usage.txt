@@ -1,0 +1,10 @@
+NAME:
+  list - List local repositories
+
+USAGE:
+  ogh list [--full-path|-p] [--json] [--help|-h]
+
+OPTIONS:
+  --full-path, -p   Print full paths
+  --json            Print value as JSON string
+  --help, -h        Show help

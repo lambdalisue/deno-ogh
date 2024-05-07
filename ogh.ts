@@ -1,69 +1,87 @@
 import {
+  basename,
+  dirname,
   fromFileUrl,
   SEPARATOR,
   SEPARATOR_PATTERN,
   toFileUrl,
 } from "@std/path";
+import { exists, expandGlob } from "@std/fs";
 import { ensure, is } from "@core/unknownutil";
 
 const DEFAULT_ROOT = "~/ogh";
 
-export interface Config {
-  // Root directory for repositories
-  root: URL;
-}
-
 const decoder = new TextDecoder();
 
-/**
- * Clone a repository into the ogh root directory
- */
-export async function clone(repository: string, config: Config) {
-  const [owner, repo] = await parseRepository(repository);
-  const directory = fromFileUrl(new URL(`${owner}/${repo}`, config.root));
-  const args = ["repo", "clone", repository, directory, "--", "--progress"];
-  const cmd = new Deno.Command("gh", {
-    args,
-    stdin: "null",
-  });
-  const proc = cmd.spawn();
-  const { code } = await proc.output();
-  if (code) {
-    throw new Error(`Failed to execute 'gh ${args.join(" ")}'`);
-  }
-}
+export class Ogh {
+  readonly root: URL;
 
-/**
- * List repositories in the ogh root directory
- */
-export async function list(config: Config): Promise<string[]> {
-  const repositories: string[] = [];
-  for await (const o of Deno.readDir(config.root)) {
-    if (!o.isDirectory) continue;
-    for await (const r of Deno.readDir(new URL(o.name, config.root))) {
-      if (!r.isDirectory) continue;
-      repositories.push(
-        fromFileUrl(new URL(`${o.name}/${r.name}`, config.root)),
-      );
+  constructor(root: URL) {
+    this.root = root;
+  }
+
+  /**
+   * Create a new Ogh instance from 'git config'
+   */
+  static async fromGitConfig(): Promise<Ogh> {
+    const args = ["config", "--get", "ogh.root"];
+    const cmd = new Deno.Command("git", {
+      args,
+      stdin: "null",
+      stdout: "piped",
+      stderr: "null",
+    });
+    const { success, stdout } = await cmd.output();
+    if (!success) {
+      return new Ogh(toFileUrl(ensureTrailingSlash(expandHome(DEFAULT_ROOT))));
+    }
+    return new Ogh(
+      toFileUrl(ensureTrailingSlash(expandHome(decoder.decode(stdout).trim()))),
+    );
+  }
+
+  /**
+   * Clone a repository into the ogh root directory
+   */
+  async clone(repository: string, { update }: { update: boolean }) {
+    const [owner, repo] = await parseRepository(repository);
+    const directory = fromFileUrl(new URL(`${owner}/${repo}`, this.root));
+    if (update && await exists(directory)) {
+      const args = ["pull", "--ff-only"];
+      const cmd = new Deno.Command("git", {
+        args,
+        cwd: directory,
+        stdin: "null",
+      });
+      const proc = cmd.spawn();
+      const { success } = await proc.output();
+      if (!success) {
+        throw new Error(`Failed to pull ${owner}/${repo} in ${directory}`);
+      }
+    } else {
+      const args = ["repo", "clone", repository, directory];
+      const cmd = new Deno.Command("gh", {
+        args,
+        stdin: "null",
+      });
+      const proc = cmd.spawn();
+      const { success } = await proc.output();
+      if (!success) {
+        throw new Error(`Failed to clone ${owner}/${repo} into ${directory}`);
+      }
     }
   }
-  return repositories;
-}
 
-/**
- * Get configuration from git config
- */
-export async function getConfig(): Promise<Config> {
-  let output: string;
-  try {
-    output = await execute("git", ["config", "--get", "ogh.root"]);
-  } catch {
-    output = DEFAULT_ROOT;
+  /**
+   * Iterate repositories in the ogh root directory
+   */
+  async *iter(): AsyncGenerator<string> {
+    for await (const entry of expandGlob(new URL("*/*/.git", this.root))) {
+      const repo = basename(dirname(entry.path));
+      const owner = basename(dirname(dirname(entry.path)));
+      yield `${owner}/${repo}`;
+    }
   }
-  const root = toFileUrl(
-    ensureTrailingSlash(expandHome(output.trim())),
-  );
-  return { root };
 }
 
 function expandHome(path: string): string {
@@ -87,30 +105,21 @@ async function parseRepository(
 ): Promise<[owner: string, repo: string]> {
   const index = repository.indexOf("/");
   if (index === -1) {
-    // Get current username
-    const output = await execute("gh", ["api", "user"]);
+    const args = ["api", "user"];
+    const cmd = new Deno.Command("gh", {
+      args,
+      stdin: "null",
+      stdout: "piped",
+      stderr: "piped",
+    });
+    const { success, stdout, stderr } = await cmd.output();
+    if (!success) {
+      const err = decoder.decode(stderr).trim();
+      throw new Error(`Failed to get current authenticated user: ${err}`);
+    }
+    const output = decoder.decode(stdout).trim();
     const json = ensure(JSON.parse(output), is.ObjectOf({ login: is.String }));
     return [json.login, repository];
   }
   return [repository.slice(0, index), repository.slice(index + 1)];
-}
-
-async function execute(
-  command: string,
-  args: string[],
-): Promise<string> {
-  const cmd = new Deno.Command(command, {
-    args,
-    stdin: "null",
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const { code, stdout, stderr } = await cmd.output();
-  if (code) {
-    const message = decoder.decode(stderr);
-    throw new Error(
-      `Failed to execute 'gh ${args.join(" ")}': ${message}`,
-    );
-  }
-  return decoder.decode(stdout);
 }

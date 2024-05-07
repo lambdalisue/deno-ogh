@@ -1,0 +1,9 @@
+NAME:
+  clone - Clone a remote repository
+
+USAGE:
+  ogh clone [--update|-u] [--help|-h] [<owner>/]<repo>
+
+OPTIONS:
+  --update, -u      Update local repository if cloned already
+  --help, -h        Show help

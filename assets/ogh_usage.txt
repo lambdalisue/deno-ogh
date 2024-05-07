@@ -1,0 +1,14 @@
+NAME:
+  ogh - Organize GitHub remote repository clones
+
+USAGE:
+  ogh COMMAND [command options]
+
+COMMANDS:
+  root    Show repositories' root
+  list    List local repositories
+  clone   Clone a remote repository
+
+CONFIGURATION:
+  ogh.root      In default, "clone" command clones repositories into "~/ogh" directory.
+                You can change the root directory by running "git config --add ogh.root <path>" command.

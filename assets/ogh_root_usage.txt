@@ -1,0 +1,9 @@
+NAME:
+  root - Show repositories' root
+
+USAGE:
+  ogh root [--json] [--help|-h]
+
+OPTIONS:
+  --json        Print value as JSON string
+  --help, -h    Show help
