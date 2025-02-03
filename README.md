@@ -30,7 +30,7 @@ $ ogh clone denoland/deno_std
 Use `deno install` command to install the command.
 
 ```console
-$ deno install --allow-net --allow-run --allow-read --allow-env jsr:@lambdalisue/ogh/cli
+$ deno install --global --allow-net --allow-run --allow-read --allow-env jsr:@lambdalisue/ogh/cli
 ```
 
 Then use it as `ogh` like
